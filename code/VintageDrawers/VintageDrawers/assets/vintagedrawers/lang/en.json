@@ -1,0 +1,5 @@
+{  
+  "error-filledcontainer": "Cannot store filled containers.",
+  "error-perishable": "Cannot store perishables.",
+  "error-toohot": "Cannot store heated items."
+}

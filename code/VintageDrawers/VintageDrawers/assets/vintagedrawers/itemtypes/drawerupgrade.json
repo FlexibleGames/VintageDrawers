@@ -1,0 +1,95 @@
+{
+	"code": "drawerupgrade",
+	"class": "DrawerUpgrade",
+	"storageFlags": 16384,
+	"attributes": {
+		"rackable": true,
+		"toolrackTransform": {
+			"translation": { "x": 0.26, "y": 0.48, "z": 0 },
+			"rotation": { "x": -19, "y": -89, "z": -21 },
+			"origin": { "x": 0.5, "y": 0.15, "z": 0.5 },
+			"scale": 1.33
+		},
+		"groundStorageTransform": {
+				"translation": { "x": 0.02, "y": -0.17, "z": -0.02 },
+				"rotation": { "x": 90, "y": 90, "z": -90 },
+				"scale": 0.67
+		},
+		"handbook": {
+			"groupBy": ["drawerupgrade-*"]
+		}
+	},
+	"attributesByType": {
+		"*-copper": 	{ "stack": true, "mul": 2 },
+		"*-bronze": 	{ "stack": true, "mul": 4 },
+		"*-cupronickel":{ "stack": true, "mul": 8 },
+		"*-iron":		{ "stack": true, "mul": 16 },
+		"*-steel": 		{ "stack": true, "mul": 32 },
+		"*-silver": 	{ "stack": true, "mul": 16 },
+		"*-brass": 		{ "stack": true, "mul": 8 },
+		"*-gold": 		{ "stack": true, "mul": 64 },
+		"*-diamond":	{ "stack": true, "mul": 128 },
+		"*-void": 		{ "stack": false },
+		"*-push": 		{ "stack": false },
+		"*-pull": 		{ "stack": false }
+	},
+	"behaviors": [{
+		"name": "GroundStorable",
+		"properties": {
+			"layout": "Quadrants",
+			"selectionBox": { "x1": 0, "y1": 0, "z1": 0, "x2": 1, "y2": 0.1, "z2": 1 },
+			"collisionBox": { "x1": 0, "y1": 0, "z1": 0, "x2": 0, "y2": 0.1, "z2": 0 }
+		}
+	}],
+	"variantgroups": [
+		{ "code": "tier", "states": ["copper", "bronze", "iron", "cupronickel", "steel", "silver", "brass", "gold", "diamond", "void", "push", "pull"] }
+	],
+    "maxstacksizeByType": {
+		"*": 16
+	},
+	"heldTpHitAnimation": "smithing",
+	"shapeByType": {
+		"*void": { "base": "vintagedrawers:item/voidupgrade" },
+		"*push": { "base": "vintagedrawers:item/pushupgrade" },
+		"*pull": { "base": "vintagedrawers:item/pullupgrade" },
+		"*": { "base": "vintagedrawers:item/drawerupgrade" }
+	},
+	"texturesByType": {
+		"*-copper": { "shinybrass": { "base": "game:block/metal/ingot/copper"} },
+		"*-silver": { "shinybrass": { "base": "game:block/metal/ingot/silver"} },
+		"*-brass": { "shinybrass": { "base": "game:block/metal/ingot/brass"} },
+		"*-bronze": { "shinybrass": { "base": "game:block/metal/ingot/tinbronze"} },
+		"*-iron": { "shinybrass": { "base": "game:block/metal/ingot/iron"} },
+		"*-cupronickel": { "shinybrass": { "base": "game:block/metal/ingot/cupronickel"} },
+		"*-steel": { "shinybrass": { "base": "game:block/metal/ingot/steel"} },
+		"*-gold": { "shinybrass": { "base": "game:block/metal/ingot/gold"} },
+		"*-diamond": { "shinybrass": { "base": "game:block/stone/gem/diamond"} },
+		"*-void": { "shinybrass": { "base": "game:block/metal/ingot/lead"} },
+		"*-push": { "shinybrass": { "base": "game:block/stone/gem/amethyst"} },
+		"*-pull": { "shinybrass": { "base": "game:block/stone/gem/sapphire"} }
+	},
+	"creativeinventory": { "general": ["*"], "items": ["*"], "tools": ["*"], "vinteng": ["*"]  },
+	"fpHandTransform": {
+		"translation": { "x": 0, "y": 0.4, "z": 0 },
+		"rotation": { "x": -33, "y": 6, "z": 90 },
+		"origin": { "x": 0.5, "y": 0, "z": 0.5 },
+		"scale": 2.75
+	},
+	"guiTransform": {
+		"translation": { "x": 3, "y": 0, "z": 0 },
+		"rotation": { "x": -72, "y": 23, "z": -3 },
+		"origin": { "x": 0.5299, "y": 0, "z": 0.48 },
+		"scale": 2.73
+	},
+	"groundTransform": {
+		"translation": { "x": 0, "y": 0, "z": 0 },
+		"rotation": { "x": 0, "y": 0, "z": 0 },
+		"origin": { "x": 0.5, "y": 0, "z": 0.5 },
+		"scale": 4.5
+	},
+	"tpHandTransform": {
+		"translation": { "x": -0.85, "y": -0.6, "z": -0.22 },
+		"rotation": { "x": 41, "y": 0, "z": 0 },
+		"scale": 0.7
+	}
+}

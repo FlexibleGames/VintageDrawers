@@ -1,0 +1,13 @@
+{
+    "$schema": "https://moddbcdn.vintagestory.at/schema/modinfo.latest.json",
+    "type": "Code",
+    "modid": "vintagedrawers",
+    "name": "VintageDrawers",
+    "authors": [
+        "Flexible Games"
+    ],
+    "description": "To be added",
+    "version": "0.1.0",
+    "dependencies": {        
+    }
+}

@@ -1,0 +1,139 @@
+{
+	"code": "onedrawer",
+	"class": "DrawerBlock",
+	"entityclass": "DrawerBE",
+	"behaviors":  [{ "name": "Lockable" }],
+	"variantgroups": [
+		{ "code": "wood", "states": ["aged", "veryaged"], "loadFromProperties": "block/wood" },
+		{ "code": "vertical", "states": ["up", "center", "down" ] },
+		{ "code":"horizontal", "loadFromProperties": "abstract/horizontalorientation" }
+	],
+	"creativeinventory": { "general": [ "*center-north" ] },
+	"shapebytype": {
+		"*center-north": {
+			"base": "vintagedrawers:block/onedrawer",
+			"rotateY": 0
+		},
+		"*center-west": {
+			"base": "vintagedrawers:block/onedrawer",
+			"rotateY": 90
+		},
+		"*center-south": {
+			"base": "vintagedrawers:block/onedrawer",
+			"rotateY": 180
+		},
+		"*center-east": {
+			"base": "vintagedrawers:block/onedrawer",
+			"rotateY": 270
+		},
+		"*up-north": {
+			"base": "vintagedrawers:block/onedrawer",
+			"rotateX": 270,
+			"rotateY": 0
+		},
+		"*up-west": {
+			"base": "vintagedrawers:block/onedrawer",
+			"rotateX": 270,
+			"rotateZ": 90
+		},
+		"*up-south": {
+			"base": "vintagedrawers:block/onedrawer",
+			"rotateX": 90,
+			"rotateY": 180
+		},
+		"*up-east": {
+			"base": "vintagedrawers:block/onedrawer",
+			"rotateX": 270,
+			"rotateZ": 270
+		},
+		"*down-north": {
+			"base": "vintagedrawers:block/onedrawer",
+			"rotateX": 90,
+			"rotateY": 0
+		},
+		"*down-west": {
+			"base": "vintagedrawers:block/onedrawer",
+			"rotateX": 90,
+			"rotateZ": 270
+		},
+		"*down-south": {
+			"base": "vintagedrawers:block/onedrawer",
+			"rotateX": 270,
+			"rotateY": 180
+		},
+		"*down-east": {
+			"base": "vintagedrawers:block/onedrawer",
+			"rotateX": 90,
+			"rotateZ": 90
+		}
+	},
+	"blockmaterial": "Wood",
+	"requiredMiningTier": 1,
+	"attributes": {
+		"canChisel": false,
+		"quantitySlots": 32,
+		"handbook": {
+			"groupBy": ["onedrawer-*"]
+		}
+	},
+	"texturesByType": {
+		"*": {
+			"all": { "base": "game:block/wood/debarked/{wood}" }
+		}
+	},
+	"replaceable": 900,
+	"resistance": 3,
+	"sounds": {
+		"place": "block/planks",
+		"walk": "walk/wood",
+		"hit": "block/planks",
+		"break": "block/planks",
+		"byTool": {
+			"Axe": { "hit": "block/chop", "break": "block/planks" }
+		}
+	},
+	"drops": [
+		{ "type": "block", "code": "onedrawer-{wood}-center-north", "quantity": { "avg": 1 }  }
+	],
+	"combustibleProps": {
+		"burnTemperature": 800,
+		"burnDuration": 144
+	},
+	"sideSolidByType": {
+		"*-up-*": {
+			"all": true,
+			"up": false
+		},
+		"*-down-*": {
+			"all": true,
+			"down": false
+		},
+		"*-center-east": {
+			"all": true,
+			"west": false
+		},
+		"*-center-west": {
+			"all": true,
+			"east": false
+		},
+		"*-center-north": {
+			"all": true,
+			"south": false
+		},
+		"*-center-south": {
+			"all": true,
+			"north": false
+		}
+	},
+	"sideopaque": {
+		"all": "true"
+	},
+	"maxStackSize": 32,
+	"materialDensity": 700,
+	"heldTpIdleAnimation": "holdbothhandslarge", "heldRightReadyAnimation": "heldblockready", "heldTpUseAnimation": "twohandplaceblock",
+	"tpHandTransform": {
+		"translation": { "x": -1.23, "y": -0.91, "z": -0.8 },
+		"rotation": { "x": -2, "y": 25, "z": -78 },
+		"scale": 0.4
+	}
+}
