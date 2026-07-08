@@ -14,7 +14,7 @@ using Vintagestory.GameContent;
 
 namespace VintageDrawers
 {
-    public class DrawerBE : BlockEntityContainer, ITexPositionSource
+    public class DrawerBE : BlockEntityOpenableContainer, ITexPositionSource
     {
         /// <summary>
         /// Slot 0 is item storage, slots 1 - 8 are upgrade slots
@@ -25,6 +25,8 @@ namespace VintageDrawers
         private ICoreClientAPI _capi;
         [AllowNull]
         private ICoreServerAPI _sapi;
+        [AllowNull]
+        private DrawerGUI _drawerGUI;
 
         private static readonly int _packetClientLeftClick = 6444;
         private static readonly int _packetLockedError = 6555;
@@ -94,9 +96,16 @@ namespace VintageDrawers
             _hOrient = base.Block.LastCodePart(0);
             _vOrient = base.Block.LastCodePart(1);
             if (_inventory == null) InitializeInventory(api.World);
+            _labelEnabled = true;
+            _valueEnabled = true;
             base.Initialize(api);
+            _inventory?.Pos = Pos;
             _inventory?.LateInitialize($"{InventoryClassName}-{Pos.X}/{Pos.Y}/{Pos.Z}", api);
             _inventory?.ResolveBlocksOrItems();
+            if (_inventory != null && !_inventory[0].Empty)
+            {
+                (_inventory[0] as ItemSlotExpandable)!.UpdateCapacity();
+            }
             foreach (long listener in TickHandlers)
             {
                 Api.Event.UnregisterGameTickListener(listener);
@@ -117,7 +126,7 @@ namespace VintageDrawers
 
         private void UpdateTick(float dt)
         {
-            // this ticks on the client every 4 seconds. Why?
+            // this ticks on the client 4 seconds after loading.
             UpdateMeshAndLabelRenderer();
             NeighborBlockChanged();
             MarkDirty(true);
@@ -296,8 +305,7 @@ namespace VintageDrawers
             }
             _inventory.SlotModified += OnSlotModified;
             _inventory.OnGetAutoPullFromSlot = new GetAutoPullFromSlotDelegate(GetAutoPullFromSlot);
-            _inventory.OnGetAutoPushIntoSlot = new GetAutoPushIntoSlotDelegate(GetAutoPushIntoSlot);
-            
+            _inventory.OnGetAutoPushIntoSlot = new GetAutoPushIntoSlotDelegate(GetAutoPushIntoSlot);            
         }
 
         public override void OnReceivedClientPacket(IPlayer fromPlayer, int packetid, byte[] data)
@@ -339,11 +347,16 @@ namespace VintageDrawers
                 }
             }
             base.OnReceivedServerPacket(packetid, data);
+            if (_drawerGUI != null && _drawerGUI.IsOpened()) _drawerGUI.Update();
         }
 
         private void OnSlotModified(int id)
         {
-            if (id > 1) (_inventory[0] as ItemSlotExpandable)?.UpdateCapacity();
+            (_inventory[0] as ItemSlotExpandable)?.UpdateCapacity();
+            if (_drawerGUI != null && _drawerGUI.IsOpened())
+            {
+                _drawerGUI.Update();
+            }
 
             if (Api.World.BlockAccessor.GetChunkAtBlockPos(Pos) != null)
             {
@@ -367,6 +380,12 @@ namespace VintageDrawers
             _mainMeshData1 = null;
             _mainMeshData2 = null;
             base.OnBlockBroken(byPlayer);
+            if (_drawerGUI != null)
+            {
+                _drawerGUI.TryClose();
+                _drawerGUI.Dispose();
+                _drawerGUI = null;
+            }
         }
         public override void OnBlockRemoved()
         {
@@ -383,6 +402,12 @@ namespace VintageDrawers
             _mainMeshData1 = null;
             _mainMeshData2 = null;
             base.OnBlockRemoved();
+            if (_drawerGUI != null)
+            {
+                _drawerGUI.TryClose();
+                _drawerGUI.Dispose();
+                _drawerGUI = null;
+            }
         }
 
         public override void OnBlockUnloaded()
@@ -400,6 +425,12 @@ namespace VintageDrawers
             _mainMeshData1 = null;
             _mainMeshData2 = null;
             base.OnBlockUnloaded();
+            if (_drawerGUI != null)
+            {
+                _drawerGUI.TryClose();
+                _drawerGUI.Dispose();
+                _drawerGUI = null;
+            }
         }
 
         private ItemSlot? GetAutoPushIntoSlot(BlockFacing atFace, ItemSlot fromSlot)
@@ -491,12 +522,12 @@ namespace VintageDrawers
             }
             if (stack.Attributes != null)
             {
-                string @string = stack.Attributes.GetString("type", null);
-                if (@string != null)
+                string stacktype = stack.Attributes.GetString("type", null);
+                if (stacktype != null)
                 {
                     _tesselatingModBlock = true;
                     _tmpTextureSource = _capi.Tesselator.GetTextureSource(stack.Block, 0, false);
-                    string? text = stack.Block.Attributes["shape"][@string].AsString(null);
+                    string? text = stack.Block.Attributes["shape"][stacktype].AsString(null);
                     if (text != null)
                     {
                         AssetLocation assetLocation;
@@ -537,7 +568,7 @@ namespace VintageDrawers
                                     }
                                 }
                             }
-                        }
+                        }                        
                     }
                 }
             }
@@ -1096,8 +1127,6 @@ namespace VintageDrawers
             MarkDirty(true);
         }
             
-
-
         private void ToggleDrawerLabel(bool isOverride = false)
         {
             if (isOverride) { _labelEnabled = true; return; }
@@ -1193,6 +1222,38 @@ namespace VintageDrawers
             return true;
         }
 
+        public override bool OnPlayerRightClick(IPlayer byPlayer, BlockSelection blockSel)
+        {
+            string face = blockSel.Face.Code;
+            string horient = base.Block.Variant["horizontal"];
+            bool isSneaking = byPlayer.Entity.Controls.Sneak;
+            bool openGUI = false;
+            if (base.Block.Variant["vertical"] == "center")
+            {
+                if (blockSel.Face.Opposite.Code == horient && isSneaking)
+                {
+                    openGUI = true;
+                }
+            }
+            else
+            {
+                if (face == base.Block.Variant["vertical"] && isSneaking)
+                {
+                    openGUI = true;
+                }
+            }
+            if (openGUI && _capi != null)
+            {
+                base.toggleInventoryDialogClient(byPlayer, delegate
+                {
+                    _drawerGUI = new DrawerGUI(Lang.Get("gui-onedrawer"), _inventory, Pos, _capi, this);
+                    _drawerGUI.Update();
+                    return _drawerGUI;
+                });
+            }
+            return true;
+        }
+
         internal bool OnPlayerInteract(IPlayer byPlayer)
         {
             ItemSlot activeslot = byPlayer.InventoryManager.ActiveHotbarSlot;
@@ -1202,13 +1263,19 @@ namespace VintageDrawers
             bool bouncer = elapsedms - _lastInteractTime < 500L; // half second trigger, a quick double right click
             _lastInteractTime = elapsedms;
             bool sprintsneak = byPlayer.Entity.Controls.Sneak | byPlayer.Entity.Controls.Sprint;
-            if (activeslot.Empty && byPlayer.Entity.Controls.Sneak)
+            bool isEmpty = _inventory[0].Empty;
+            if (activeslot.Empty)
             {
-                // Need to trigger the GUI somehow.
+                OnPlayerRightClick(byPlayer, byPlayer.CurrentBlockSelection);
+                if (bouncer && Api.Side == EnumAppSide.Server && TryPutAll(byPlayer))
+                {
+                    _sapi.Network.SendBlockEntityPacket((IServerPlayer)byPlayer, Pos, DrawerBE._packetPutAll, null);
+                    return true;
+                }
             }
-            if (!activeslot.Empty && !sprintsneak)
+            else
             {
-                if (activeslot.Itemstack.Collectible.Code.Path.Contains("drawerkey"))
+                if (!sprintsneak && activeslot.Itemstack.Collectible.Code.Path.Contains("drawerkey"))
                 {
                     string keytype = activeslot.Itemstack.Collectible.Variant["type"];
                     if (keytype == "lock") ToggleDrawerLock();
@@ -1216,20 +1283,16 @@ namespace VintageDrawers
                     else if (keytype == "value") ToggleDrawerValue();
                     return false;
                 }
-                if (bouncer && Api.Side == EnumAppSide.Server && TryPutAll(byPlayer))
-                {
-                    _sapi.Network.SendBlockEntityPacket((IServerPlayer)byPlayer, Pos, DrawerBE._packetPutAll, null);
-                    return true;
-                }
-            }
-            else if (!activeslot.Empty && sprintsneak)
-            {
                 if (!IsAllowed(activeslot))
                 {
                     return false;
                 }
                 if (TryPut(byPlayer.InventoryManager.ActiveHotbarSlot, true))
                 {
+                    if (isEmpty)
+                    {
+                        (_inventory[0] as ItemSlotExpandable)!.UpdateCapacity();
+                    }
                     IClientPlayer? clientPlayer = byPlayer as IClientPlayer;
                     if (clientPlayer != null)
                     {
@@ -1778,36 +1841,7 @@ namespace VintageDrawers
             {
                 TranslateMesh(meshData2);
                 this.UpdateXYZFaces(meshData2);
-                _mainMeshData1 = meshData2;
-                // Drawers are not 2-sided
-                //if (this.twoSided)
-                //{
-                //    MeshData meshData3 = meshData2.Clone();
-                //    string a = this.verticalOrientation;
-                //    if (!(a == "center"))
-                //    {
-                //        if (a == "up" || a == "down")
-                //        {
-                //            string a2 = this.horizontalOrientation;
-                //            if (!(a2 == "east") && !(a2 == "west"))
-                //            {
-                //                if (a2 == "north" || a2 == "south")
-                //                {
-                //                    meshData3.Rotate(new Vec3f(0.5f, 0.5f, 0.5f), 3.1415927f, 0f, 0f);
-                //                }
-                //            }
-                //            else
-                //            {
-                //                meshData3.Rotate(new Vec3f(0.5f, 0.5f, 0.5f), 0f, 0f, 3.1415927f);
-                //            }
-                //        }
-                //    }
-                //    else
-                //    {
-                //        meshData3.Rotate(new Vec3f(0.5f, 0.5f, 0.5f), 3.1415927f, 0f, 3.1415927f);
-                //    }
-                //    this.mainMeshData2 = meshData3.Clone();
-                //}
+                _mainMeshData1 = meshData2;                
             }
             this.MarkDirty(true, null);
         }
@@ -1948,7 +1982,7 @@ namespace VintageDrawers
             }
             if (Api != null && worldForResolving.Side == EnumAppSide.Client)
             {
-                // mesh/label stuff
+                UpdateMeshAndLabelRenderer();
                 MarkDirty(true, null);
             }
         }

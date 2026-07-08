@@ -1,0 +1,66 @@
+[
+	{
+		"ingredientPattern": "NBN,BCB,NBN",
+		"ingredients": {
+			"N": {
+				"type": "item",
+				"code": "game:metalnailsandstrips-{metal}",
+				"quantity": 1
+			},
+			"B": {
+				"type": "item",
+				"code": "game:plank-*",
+				"name": "wood",
+				"quantity": 1,
+				"skipVariants": [ "agedacacia", "agedebony", "rottenebony" ]
+			},
+			"C": {
+				"type": "block",
+				"code": "game:chest-east",
+				"quantity": 1
+			}
+		},
+		"allowedVariants": {
+			"metal": [ "copper", "blackbronze", "tinbronze", "bismuthbronze", "iron", "silver", "gold", "meteoriciron", "steel", "electrum" ]
+		},
+		"width": 3,
+		"height": 3,
+		"output": {
+			"type": "block",
+			"code": "vintagedrawers:onedrawer-{wood}-center-north",
+			"quantity": 1
+		}
+	},
+	{
+		"ingredientPattern": "NBN,BCB,NBN",
+		"ingredients": {
+			"N": {
+				"type": "item",
+				"code": "game:metalnailsandstrips-{metal}",
+				"quantity": 1
+			},
+			"B": {
+				"type": "item",
+				"code": "game:plank-*",
+				"name": "wood",
+				"quantity": 1,
+				"skipVariants": [ "agedacacia", "agedebony", "rottenebony" ]
+			},
+			"C": {
+				"type": "block",
+				"code": "game:trunk-east",
+				"quantity": 1
+			}
+		},
+		"allowedVariants": {
+			"metal": [ "copper", "blackbronze", "tinbronze", "bismuthbronze", "iron", "silver", "gold", "meteoriciron", "steel", "electrum" ]
+		},
+		"width": 3,
+		"height": 3,
+		"output": {
+			"type": "block",
+			"code": "vintagedrawers:onedrawer-{wood}-center-north",
+			"quantity": 2
+		}
+	}
+]

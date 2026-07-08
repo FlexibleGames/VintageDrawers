@@ -49,6 +49,7 @@ namespace VintageDrawers
         public override void Start(ICoreAPI api)
         {
             Mod.Logger.Notification("Assembling Drawers: " + api.Side);
+            RegisterClasses(api);
         }
 
         public override void StartPre(ICoreAPI api)
@@ -59,6 +60,13 @@ namespace VintageDrawers
                 DrawerConfig.Current = api.LoadOrCreateConfig<DrawerConfig>("DrawerConfig.json");
             }
             // an else would be for any server-specific configs
+        }
+
+        private void RegisterClasses(ICoreAPI api)
+        {
+            api.RegisterBlockClass("DrawerBlock", typeof(DrawerBlock));
+            api.RegisterBlockEntityClass("DrawerBE", typeof(DrawerBE));
+            api.RegisterItemClass("DrawerUpgrade", typeof(DrawerUpgrade));
         }
     }
 }

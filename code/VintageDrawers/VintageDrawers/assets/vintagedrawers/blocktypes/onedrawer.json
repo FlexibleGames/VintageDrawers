@@ -2,11 +2,21 @@
 	"code": "onedrawer",
 	"class": "DrawerBlock",
 	"entityclass": "DrawerBE",
-	"behaviors":  [{ "name": "Lockable" }],
+	"behaviors": [ { "name": "Lockable" } ],
 	"variantgroups": [
-		{ "code": "wood", "states": ["aged", "veryaged"], "loadFromProperties": "block/wood" },
-		{ "code": "vertical", "states": ["up", "center", "down" ] },
-		{ "code":"horizontal", "loadFromProperties": "abstract/horizontalorientation" }
+		{
+			"code": "wood",
+			"states": [ "aged", "veryaged" ],
+			"loadFromProperties": "block/wood"
+		},
+		{
+			"code": "vertical",
+			"states": [ "up", "center", "down" ]
+		},
+		{
+			"code": "horizontal",
+			"loadFromProperties": "abstract/horizontalorientation"
+		}
 	],
 	"creativeinventory": { "general": [ "*center-north" ] },
 	"shapebytype": {
@@ -73,7 +83,7 @@
 		"canChisel": false,
 		"quantitySlots": 32,
 		"handbook": {
-			"groupBy": ["onedrawer-*"]
+			"groupBy": [ "onedrawer-*" ]
 		}
 	},
 	"texturesByType": {
@@ -84,16 +94,23 @@
 	"replaceable": 900,
 	"resistance": 3,
 	"sounds": {
-		"place": "block/planks",
-		"walk": "walk/wood",
-		"hit": "block/planks",
-		"break": "block/planks",
+		"place": "game:block/planks",
+		"walk": "game:walk/wood",
+		"hit": "game:block/planks",
+		"break": "game:block/planks",
 		"byTool": {
-			"Axe": { "hit": "block/chop", "break": "block/planks" }
+			"Axe": {
+				"hit": "game:block/chop",
+				"break": "game:block/planks"
+			}
 		}
 	},
 	"drops": [
-		{ "type": "block", "code": "onedrawer-{wood}-center-north", "quantity": { "avg": 1 }  }
+		{
+			"type": "block",
+			"code": "onedrawer-{wood}-center-north",
+			"quantity": { "avg": 1 }
+		}
 	],
 	"combustibleProps": {
 		"burnTemperature": 800,
@@ -130,10 +147,27 @@
 	},
 	"maxStackSize": 32,
 	"materialDensity": 700,
-	"heldTpIdleAnimation": "holdbothhandslarge", "heldRightReadyAnimation": "heldblockready", "heldTpUseAnimation": "twohandplaceblock",
+	"heldTpIdleAnimation": "holdbothhandslarge",
+	"heldRightReadyAnimation": "heldblockready",
+	"heldTpUseAnimation": "twohandplaceblock",
 	"tpHandTransform": {
-		"translation": { "x": -1.23, "y": -0.91, "z": -0.8 },
-		"rotation": { "x": -2, "y": 25, "z": -78 },
+		"translation": {
+			"x": -1.23,
+			"y": -0.91,
+			"z": -0.8
+		},
+		"rotation": {
+			"x": -2,
+			"y": 25,
+			"z": -78
+		},
 		"scale": 0.4
+	},
+	"guiTransform": {
+		"rotation": {
+			"x": -22.6,
+			"y": 140,
+			"z": 0
+		}
 	}
 }

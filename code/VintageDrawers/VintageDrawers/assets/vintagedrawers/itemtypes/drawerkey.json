@@ -41,8 +41,6 @@
 		"*value": { "base": "vintagedrawers:item/drawerkey-value" },
 		"*": { "base": "vintagedrawers:item/drawerkey-lock" }
 	},
-	"texturesByType": {
-	},
 	"creativeinventory": { "general": ["*"], "items": ["*"], "tools": ["*"], "vinteng": ["*"]  },
 	"fpHandTransform": {
 		"translation": { "x": 0, "y": 0.4, "z": 0 },

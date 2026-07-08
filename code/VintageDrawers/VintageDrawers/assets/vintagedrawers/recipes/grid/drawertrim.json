@@ -1,0 +1,29 @@
+[
+	{
+		"ingredientPattern": "NBN,B_B,NBN",
+		"ingredients": {
+			"N": {
+				"type": "item",
+				"code": "game:metalnailsandstrips-{metal}",
+				"quantity": 1
+			},
+			"B": {
+				"type": "item",
+				"code": "game:plank-*",
+				"name": "wood",
+				"quantity": 1,
+				"skipVariants": [ "agedacacia", "agedebony", "rottenebony" ]
+			}
+		},
+		"allowedVariants": {
+			"metal": [ "copper", "blackbronze", "tinbronze", "bismuthbronze", "iron", "silver", "gold", "meteoriciron", "steel", "electrum" ]
+		},
+		"width": 3,
+		"height": 3,
+		"output": {
+			"type": "block",
+			"code": "vintagedrawers:drawertrim-{wood}",
+			"quantity": 8
+		}
+	}
+]

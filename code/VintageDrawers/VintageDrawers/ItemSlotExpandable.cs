@@ -30,11 +30,11 @@ namespace VintageDrawers
         public ItemSlotExpandable(InventoryBase inventory, int basenumslots) : base(inventory)
         {
             _baseNumSlots = basenumslots;
-            int upgradedslots = StackUpgradeCheck(inventory);
-            _numSlots = upgradedslots;
+            int upgradedslots = inventory.Api != null ? StackUpgradeCheck(inventory) : _baseNumSlots;
+            _numSlots = _baseNumSlots;
             if (this.Empty)
             {
-                this.MaxSlotStackSize = 64 * upgradedslots;
+                this.MaxSlotStackSize = _baseNumSlots * 64;
             }
             else
             {
@@ -66,25 +66,29 @@ namespace VintageDrawers
         public void UpdateCapacity()
         {
             int newnumstacks = StackUpgradeCheck(this.inventory);
-            if (newnumstacks != _numSlots)
+            
+            _numSlots = newnumstacks;
+            if (this.Empty)
             {
-                _numSlots = newnumstacks;
-                if (this.Empty)
-                {
-                    this.MaxSlotStackSize = 64 * _numSlots;
-                }
-                else
-                {
-                    int contentstacksize = this.itemstack.Collectible.MaxStackSize;
-                    this.MaxSlotStackSize = contentstacksize * _numSlots;
-                }
+                this.MaxSlotStackSize = 64 * _numSlots;
             }
+            else
+            {
+                int contentstacksize = this.itemstack.Collectible.MaxStackSize;
+                this.MaxSlotStackSize = contentstacksize * _numSlots;
+            }            
+        }
+
+        public override void ActivateSlot(ItemSlot sourceSlot, ref ItemStackMoveOperation op)
+        {
+            // TODO
+            base.ActivateSlot(sourceSlot, ref op);
         }
 
         /// <summary>
         /// Checks the inventory upgrade slots for any stack upgrades and returns the number of stacks this slot can hold.<br/>
         /// Formula is: value = Base Num * (foreach upgrade (Base Num * Upgrade Mul))<br/>
-        /// So when using the maximum number of diamond upgrades = 32 * (32 * 8 * 128) = 1,048,576 stacks
+        /// So when using the maximum number of diamond upgrades = 32 * (8 * 2048) = 524,288 stacks
         /// </summary>
         /// <param name="p_inventory">Inventory, slot ids 1 - 8 need to be the upgrade slots.</param>
         /// <returns>Number of slots this slot can hold.</returns>
@@ -106,8 +110,8 @@ namespace VintageDrawers
                 }
             }
             if (stackextra == 0) stackextra = 1;
-            // Max number of stacks is thusly 32 (base) * (32 * 8 * 128) = 1048576 stacks with all 8 diamond stack upgrades installed
-            // If the drawer item has a stack size of 64, that would be 67,108,864 items in one drawer.
+            // Max number of stacks is thusly 32 * (8 * 2048) = 524,288 stacks with all 8 diamond stack upgrades installed
+            // If the drawer item has a stack size of 64, that would be 33,554,432 items in one drawer.
             return stackextra * _baseNumSlots;
         }        
 

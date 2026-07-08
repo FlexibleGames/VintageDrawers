@@ -1,7 +1,46 @@
-{  
+{
   "error-filledcontainer": "Cannot store filled containers.",
   "error-perishable": "Cannot store perishables.",
   "error-toohot": "Cannot store heated items.",
   "contents": "Contents",
-  "durability": "Durability"
+  "durability": "Durability",
+  "upgrades": "Upgrades:",
+  "gui-onedrawer": "Vintage Drawer",
+  "block-onedrawer-*": "Storage Drawer",
+  "blockdesc-onedrawer-*": "Store many of a single item type, upgradable.",
+  "block-drawertrim-*": "Drawer Trim",
+  "blockdesc-drawertrim-*": "Trim allows for expanding drawer controller managed drawers.",
+
+  "item-drawerupgrade-copper": "Drawer Stack Upgrade (Copper)",
+  "item-drawerupgrade-bronze": "Drawer Stack Upgrade (Bronze)",
+  "item-drawerupgrade-cupronickel": "Drawer Stack Upgrade (Cupronickel)",
+  "item-drawerupgrade-iron": "Drawer Stack Upgrade (Iron)",
+  "item-drawerupgrade-steel": "Drawer Stack Upgrade (Steel)",
+  "item-drawerupgrade-silver": "Drawer Stack Upgrade (Silver)",
+  "item-drawerupgrade-brass": "Drawer Stack Upgrade (Brass)",
+  "item-drawerupgrade-gold": "Drawer Stack Upgrade (Gold)",
+  "item-drawerupgrade-diamond": "Drawer Stack Upgrade (Diamond)",
+  "item-drawerupgrade-void": "Drawer Void Upgrade",
+  "item-drawerupgrade-push": "Drawer Push Upgrade",
+  "item-drawerupgrade-pull": "Drawer Pull Upgrade",
+
+  "itemdesc-drawerupgrade-copper": "Copper upgrades drawer capacity by 2x",
+  "itemdesc-drawerupgrade-bronze": "Bronze upgrades drawer capacity by 4x",
+  "itemdesc-drawerupgrade-cupronickel": "Cupronickel upgrades drawer capacity by 8x",
+  "itemdesc-drawerupgrade-iron": "Iron upgrades drawer capacity by 16x",
+  "itemdesc-drawerupgrade-steel": "Steel upgrades drawer capacity by 128x",
+  "itemdesc-drawerupgrade-silver": "Silver upgrades drawer capacity by 16x",
+  "itemdesc-drawerupgrade-brass": "Brass upgrades drawer capacity by 8x",
+  "itemdesc-drawerupgrade-gold": "Gold upgrades drawer capacity by 512x",
+  "itemdesc-drawerupgrade-diamond": "Diamond upgrades drawer capacity by 2048x",
+  "itemdesc-drawerupgrade-void": "Void upgrade allows a drawer to receive items even when full. Voids excess.",
+  "itemdesc-drawerupgrade-push": "Push upgrade allows a drawer to push items it contains into non-drawer inventories it is adjacent to.",
+  "itemdesc-drawerupgrade-pull": "Pull upgrade allows a drawer to pull items from non-drawer inventoires it is adjacent to.",
+
+  "item-drawerkey-lock": "Drawer Key (Lock)",
+  "item-drawerkey-label": "Drawer Key (Label)",
+  "item-drawerkey-value": "Drawer Key (Values)",
+  "itemdesc-drawerkey-lock": "Lock Key will lock a drawer to the item it currently contains, even if it is emptied.",
+  "itemdesc-drawerkey-label": "Label Key will hide/show the item and amount in a drawer. Due to requiring a custom renderer, hiding labels in very large drawer systems can help FPS.",
+  "itemdesc-drawerkey-value": "Value Key will hide/show the amount contained in a drawer. Hiding can help FPS in large drawer systems."
 }

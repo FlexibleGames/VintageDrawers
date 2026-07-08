@@ -1,0 +1,66 @@
+{
+  "code": "drawertrim",
+  "variantgroups": [
+    {
+      "code": "wood",
+      "states": [ "aged", "veryaged" ],
+      "loadFromProperties": "block/wood"
+    }
+  ],
+  "creativeinventory": {
+    "general": [ "*" ],
+    "construction": [ "*" ]
+  },
+  "shape": { "base": "game:block/basic/cube" },
+  "blockmaterial": "Wood",
+  "drawtype": "cube",
+  "texturesByType": {
+    "*": {
+      "all": {
+        "base": "game:block/wood/debarked/{wood}",
+        "rotation": 90
+      },
+      "up": {
+        "base": "game:block/wood/debarked/{wood}"
+      },
+      "down": {
+        "base": "game:block/wood/debarked/{wood}"
+      }
+    }
+  },
+  "resistance": 3.5,
+  "sounds": {
+    "hit": "game:block/planks",
+    "break": "game:block/planks",
+    "place": "game:block/planks",
+    "walk": "game:walk/wood"
+  },
+  "combustibleProps": {
+    "burnTemperature": 600,
+    "burnDuration": 20
+  },
+  "maxStackSize": 64,
+  "materialDensity": 600,
+  "heldTpIdleAnimation": "holdbothhandslarge",
+  "heldRightReadyAnimation": "heldblockready",
+  "heldTpUseAnimation": "twohandplaceblock",
+  "tpHandTransform": {
+    "translation": {
+      "x": -1.23,
+      "y": -0.91,
+      "z": -0.8
+    },
+    "rotation": {
+      "x": -2,
+      "y": 25,
+      "z": -78
+    },
+    "scale": 0.4
+  },
+  "drops": [
+    {
+      "type": "block",
+      "code": "drawertrim-{wood}"
+    }
+  ]
+}
