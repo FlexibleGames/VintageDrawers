@@ -46,7 +46,7 @@ namespace VintageDrawers
         public override bool CanTakeFrom(ItemSlot sourceSlot, EnumMergePriority priority = EnumMergePriority.AutoMerge)
         {
             if (Inventory != null && Inventory.PutLocked) return false;
-            ItemStack source = sourceSlot.Itemstack;
+            ItemStack source = sourceSlot.Itemstack!;
             return source != null &&
                 ((source.Collectible.GetStorageFlags(source) & this.StorageType) > (EnumItemStorageFlags)0 &&
                     (itemstack == null || GetMergableQuantity(itemstack, source, priority) > 0)) &&
@@ -182,8 +182,8 @@ namespace VintageDrawers
         public virtual void TryMergeStacks(ItemStackMergeOperation op)
         {
             // will ignore collectable MaxStackSize and rely on the slots MaxStackSize instead
-            op.MovableQuantity = this.GetMergableQuantity(op.SinkSlot.Itemstack, op.SourceSlot.Itemstack, op.CurrentPriority);
-            CollectibleObject sinkobj = op.SinkSlot.Itemstack.Collectible;
+            op.MovableQuantity = this.GetMergableQuantity(op.SinkSlot.Itemstack!, op.SourceSlot.Itemstack!, op.CurrentPriority);
+            CollectibleObject sinkobj = op.SinkSlot.Itemstack!.Collectible;
             if (op.MovableQuantity == 0)
             {
                 return;
@@ -213,7 +213,7 @@ namespace VintageDrawers
             }
             TransitionState[] sourceTransitionStates = sinkobj.UpdateAndGetTransitionStates(op.World, op.SourceSlot);
             TransitionState[] targetTransitionStates = sinkobj.UpdateAndGetTransitionStates(op.World, op.SinkSlot);
-            Dictionary<EnumTransitionType, TransitionState> targetStatesByType = null;
+            Dictionary<EnumTransitionType, TransitionState>? targetStatesByType = null;
             if (sourceTransitionStates != null)
             {
                 bool canDirectStack = true;
@@ -231,7 +231,7 @@ namespace VintageDrawers
                 }
                 foreach (TransitionState sourceState in sourceTransitionStates)
                 {
-                    TransitionState targetState = null;
+                    TransitionState? targetState = null;
                     if (!targetStatesByType.TryGetValue(sourceState.Props.Type, out targetState))
                     {
                         canAutoStack = false;
@@ -278,9 +278,9 @@ namespace VintageDrawers
             if (doTransitionAveraging)
             {
                 float t = (float)op.MovedQuantity / (float)(op.MovedQuantity + op.SinkSlot.StackSize);
-                foreach (TransitionState sourceState2 in sourceTransitionStates)
+                foreach (TransitionState sourceState2 in sourceTransitionStates!)
                 {
-                    TransitionState targetState2 = targetStatesByType[sourceState2.Props.Type];
+                    TransitionState targetState2 = targetStatesByType![sourceState2.Props.Type];
                     sinkobj.SetTransitionState(op.SinkSlot.Itemstack, sourceState2.Props.Type, sourceState2.TransitionedHours * t + targetState2.TransitionedHours * (1f - t));
                 }
             }
@@ -319,7 +319,9 @@ namespace VintageDrawers
             op = mergeop;
             int origRequestedQuantity = op.RequestedQuantity;
             op.RequestedQuantity = Math.Min(sinkSlot.GetRemainingSlotSpace(this.itemstack), op.RequestedQuantity);
-            sinkSlot.Itemstack.Collectible.TryMergeStacks(mergeop);
+            //sinkSlot.Itemstack.Collectible.TryMergeStacks(mergeop);
+            TryMergeStacks(mergeop); // <-- custom call to ignore collectable MaxStackSize
+
             if (mergeop.MovedQuantity > 0)
             {
                 sinkSlot.OnItemSlotModified(sinkSlot.Itemstack);

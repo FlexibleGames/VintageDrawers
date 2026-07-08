@@ -42,9 +42,9 @@ namespace VintageDrawers
 
         private static readonly float fontSize = 30f;
 
-        private bool _drawText = true;
-        private bool _drawLockIcon = true;
-        private bool _drawValue = true;
+        public bool _drawText = true;
+        public bool _drawLockIcon = true;
+        //public bool _drawValue = true;
         public bool ShouldDraw = true;
 
         private DrawerBE _drawerBE;

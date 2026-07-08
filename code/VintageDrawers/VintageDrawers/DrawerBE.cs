@@ -60,16 +60,17 @@ namespace VintageDrawers
         private Vec3f? _labelRot1;
         private Vec3f? _labelRot2;
         protected Shape? _nowTesselatingShape;
-        public MeshData _mainMeshData1;
+        public MeshData? _mainMeshData1;
         public MeshData? _mainMeshData2;
 
-        // private DrawerLabelRenderer _labelRenderer1;
-        // private DrawerLabelRenderer _labelRenderer2;
+        private DrawerLabelRenderer? _labelRenderer1;
+        private DrawerLabelRenderer? _labelRenderer2;
 
         private long _tickListenerHandle;
         public bool? _labelFace1OppositeIsOpaque;
         public bool? _labelFace2OppositeIsOpaque;
 
+        private int _previousItemStackID = -1;
         public bool _shouldDrawMesh = true;
         private string? _curMat;
         private string? _curLining;
@@ -299,13 +300,106 @@ namespace VintageDrawers
             
         }
 
+        public override void OnReceivedClientPacket(IPlayer fromPlayer, int packetid, byte[] data)
+        {
+            base.OnReceivedClientPacket(fromPlayer, packetid, data);
+            if (this.Api.Side == EnumAppSide.Server)
+            {
+                if (!this.Api.World.Claims.TryAccess(fromPlayer, this.Pos, EnumBlockAccessFlags.Use))
+                {
+                    return;
+                }
+                if (this.Api.World.Api.ModLoader.GetModSystem<ModSystemBlockReinforcement>(true).IsLockedForInteract(this.Pos, fromPlayer))
+                {
+                    ((ICoreServerAPI)this.Api).Network.SendBlockEntityPacket((IServerPlayer)fromPlayer, this.Pos, DrawerBE._packetLockedError, null);
+                    return;
+                }
+                if (packetid == DrawerBE._packetClientLeftClick)
+                {
+                    bool takeBulk = false;
+                    if (data.Length != 0 && data[0] == 1)
+                    {
+                        takeBulk = true;
+                    }
+                    TryTake(fromPlayer, takeBulk);
+                }
+            }
+        }
+        public override void OnReceivedServerPacket(int packetid, byte[] data)
+        {
+            if (_capi != null)
+            {
+                if (packetid == DrawerBE._packetLockedError)
+                {
+                    _capi.TriggerIngameError(this, "locked", Lang.Get("ingameerror-locked", Array.Empty<object>()));
+                }
+                if (packetid == DrawerBE._packetPutAll)
+                {
+                    this.Api.World.PlaySoundAt(new AssetLocation("game:sounds/player/build"), _capi.World.Player.Entity, _capi.World.Player, true, 16f, 1f);
+                }
+            }
+            base.OnReceivedServerPacket(packetid, data);
+        }
+
         private void OnSlotModified(int id)
         {
+            if (id > 1) (_inventory[0] as ItemSlotExpandable)?.UpdateCapacity();
+
             if (Api.World.BlockAccessor.GetChunkAtBlockPos(Pos) != null)
             {
                 Api.World.BlockAccessor.GetChunkAtBlockPos(Pos).MarkModified();
             }
             MarkDirty(false);
+        }
+
+        public override void OnBlockBroken(IPlayer? byPlayer = null)
+        {
+            if (_labelRenderer1 != null)
+            {
+                _labelRenderer1.Dispose();
+                _labelRenderer1 = null;
+            }
+            if (_labelRenderer2 != null)
+            {
+                _labelRenderer2.Dispose();
+                _labelRenderer2 = null;
+            }
+            _mainMeshData1 = null;
+            _mainMeshData2 = null;
+            base.OnBlockBroken(byPlayer);
+        }
+        public override void OnBlockRemoved()
+        {
+            if (_labelRenderer1 != null)
+            {
+                _labelRenderer1.Dispose();
+                _labelRenderer1 = null;
+            }
+            if (_labelRenderer2 != null)
+            {
+                _labelRenderer2.Dispose();
+                _labelRenderer2 = null;
+            }
+            _mainMeshData1 = null;
+            _mainMeshData2 = null;
+            base.OnBlockRemoved();
+        }
+
+        public override void OnBlockUnloaded()
+        {
+            if (_labelRenderer1 != null)
+            {
+                _labelRenderer1.Dispose();
+                _labelRenderer1 = null;
+            }
+            if (_labelRenderer2 != null)
+            {
+                _labelRenderer2.Dispose();
+                _labelRenderer2 = null;
+            }
+            _mainMeshData1 = null;
+            _mainMeshData2 = null;
+            base.OnBlockUnloaded();
         }
 
         private ItemSlot? GetAutoPushIntoSlot(BlockFacing atFace, ItemSlot fromSlot)
@@ -1105,9 +1199,13 @@ namespace VintageDrawers
             if (activeslot == null) return false;
 
             long elapsedms = Api.World.ElapsedMilliseconds;
-            bool bouncer = elapsedms - _lastInteractTime < 500L;
+            bool bouncer = elapsedms - _lastInteractTime < 500L; // half second trigger, a quick double right click
             _lastInteractTime = elapsedms;
             bool sprintsneak = byPlayer.Entity.Controls.Sneak | byPlayer.Entity.Controls.Sprint;
+            if (activeslot.Empty && byPlayer.Entity.Controls.Sneak)
+            {
+                // Need to trigger the GUI somehow.
+            }
             if (!activeslot.Empty && !sprintsneak)
             {
                 if (activeslot.Itemstack.Collectible.Code.Path.Contains("drawerkey"))
@@ -1118,6 +1216,11 @@ namespace VintageDrawers
                     else if (keytype == "value") ToggleDrawerValue();
                     return false;
                 }
+                if (bouncer && Api.Side == EnumAppSide.Server && TryPutAll(byPlayer))
+                {
+                    _sapi.Network.SendBlockEntityPacket((IServerPlayer)byPlayer, Pos, DrawerBE._packetPutAll, null);
+                    return true;
+                }
             }
             else if (!activeslot.Empty && sprintsneak)
             {
@@ -1125,43 +1228,202 @@ namespace VintageDrawers
                 {
                     return false;
                 }
+                if (TryPut(byPlayer.InventoryManager.ActiveHotbarSlot, true))
+                {
+                    IClientPlayer? clientPlayer = byPlayer as IClientPlayer;
+                    if (clientPlayer != null)
+                    {
+                        clientPlayer.TriggerFpAnimation(EnumHandInteract.HeldItemInteract);
+                    }
+                    Api.World.PlaySoundAt(new AssetLocation("game:sounds/player/build"), byPlayer.Entity, byPlayer, true, 16f, 1f);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public void OnPlayerLeftClick(IPlayer player)
+        {
+            if (_capi != null)
+            {
+                if (_inventory[0].Empty)
+                {
+                    return;
+                }
+                byte[] array = new byte[1];
+                if (player.Entity.Controls.Sneak)
+                {
+                    array[0] = 1;
+                }
+                _capi.Network.SendBlockEntityPacket(this.Pos, DrawerBE._packetClientLeftClick, array);
             }
         }
 
         private bool TryPut(ItemSlot fromSlot, bool putBulk)
         {
             bool result = false;
-            int num = 1;
+            int numToMove = 1;
             if (putBulk)
             {
-                num = fromSlot.StackSize;
-            }
-            int num2 = 0;
-            for (; ; )
+                numToMove = fromSlot.StackSize;
+            }            
+
+            ItemSlotExpandable bulkslot = (ItemSlotExpandable)_inventory[0];
+            if (bulkslot == null)
             {
-                ItemSlot inventoryFirstItemSlotNotFull = _inventory[0];
-                if (inventoryFirstItemSlotNotFull == null)
-                {
-                    return result;
-                }
-                int num3 = fromSlot.TryPutInto(this.Api.World, inventoryFirstItemSlotNotFull, num);
-                if (num3 > 0)
-                {
-                    result = true;
-                }
-                num -= num3;
-                if (num <= 0)
-                {
-                    break;
-                }
-                num2++;
-                if (num2 > this.inventory.Count)
-                {
-                    return result;
-                }
+                return result;
+            }
+            int moved = bulkslot.TryTakeFrom(Api.World, fromSlot, numToMove);
+            //int moved = fromSlot.TryPutInto(this.Api.World, bulkslot, num);
+            if (moved > 0)
+            {
+                result = true;
             }
             result = true;
             return result;
+        }
+
+        private bool TryPutAll(IPlayer byPlayer)
+        {
+            if (_inventory.Empty && _lockedToStack == null)
+            {
+                return false;
+            }
+            if (GetStoredItemStack() == null)
+            {
+                return false;
+            }
+            bool result = false;
+            string inventoryName = byPlayer.InventoryManager.GetInventoryName("backpack");
+            IInventory inventory = byPlayer.InventoryManager.GetInventory(inventoryName);
+            IInventory hotbarInventory = byPlayer.InventoryManager.GetHotbarInventory();
+            if (hotbarInventory != null)
+            {
+                for (int i = 0; i < hotbarInventory.Count - 1; i++)
+                {
+                    if (!hotbarInventory[i].Empty && IsAllowed(hotbarInventory[i]) && this.TryPut(hotbarInventory[i], true))
+                    {
+                        result = true;
+                    }
+                }
+            }
+            if (inventory != null)
+            {
+                for (int j = 0; j < inventory.Count; j++)
+                {
+                    if (!inventory[j].Empty && IsAllowed(inventory[j]) && this.TryPut(inventory[j], true))
+                    {
+                        result = true;
+                    }
+                }
+            }
+            return result;
+        }
+
+        private bool TryTake(IPlayer byPlayer, bool takeBulk)
+        {
+            if (_inventory.Empty)
+            {
+                return false;
+            }
+            bool filthy = false;
+            int numToTake = 1;
+            if (takeBulk)
+            {
+                numToTake = this.GetStoredItemMaxStackSize();
+            }
+            int num2 = numToTake;
+            ItemStack? itemStack = null;
+
+            ItemSlotExpandable? bulkslot = GetStoredItemSlot();
+            if (bulkslot == null) return false; // the drawer doesn't have a bulkslot?
+            filthy = true;
+            if (itemStack == null)
+            {
+                itemStack = bulkslot.TakeOut(numToTake);
+            }
+            if (itemStack == null) return false; // nothing to grab?
+            
+            if (byPlayer.InventoryManager.TryGiveItemstack(itemStack, true))
+            {
+                if (itemStack.Block != null && itemStack.Block.Sounds != null)
+                {
+                    this.Api.World.PlaySoundAt(itemStack.Block.Sounds.Place.Location, byPlayer.Entity, byPlayer, true, 16f, 1f);
+                }
+                else
+                {
+                    this.Api.World.PlaySoundAt(new AssetLocation("game:sounds/player/build"), byPlayer.Entity, byPlayer, true, 16f, 1f);
+                }
+            }
+            if (itemStack.StackSize > 0)
+            {
+                Vec3f zero = Vec3f.Zero;
+                Vec3d zero2 = Vec3d.Zero;
+                zero.Set(0.5f, 0.4f, 0.5f);
+                string a = _hOrient!;
+                if (!(a == "north"))
+                {
+                    if (!(a == "south"))
+                    {
+                        if (!(a == "east"))
+                        {
+                            if (a == "west")
+                            {
+                                zero.X = 1f;
+                                zero2.X = 0.025;
+                                zero2.Z = (this.Api.World.Rand.NextDouble() - 0.5) * 0.009999999776482582;
+                            }
+                        }
+                        else
+                        {
+                            zero.X = 0f;
+                            zero2.X = -0.025;
+                            zero2.Z = (this.Api.World.Rand.NextDouble() - 0.5) * 0.009999999776482582;
+                        }
+                    }
+                    else
+                    {
+                        zero.Z = 0f;
+                        zero2.Z = -0.025;
+                        zero2.X = (this.Api.World.Rand.NextDouble() - 0.5) * 0.009999999776482582;
+                    }
+                }
+                else
+                {
+                    zero.Z = 1f;
+                    zero2.Z = 0.025;
+                    zero2.X = (this.Api.World.Rand.NextDouble() - 0.5) * 0.009999999776482582;
+                }
+                a = _vOrient!;
+                if (!(a == "center"))
+                {
+                    if (!(a == "up"))
+                    {
+                        if (a == "down")
+                        {
+                            zero.X = (zero.Z = 0.5f);
+                            zero.Y = 0f;
+                            zero2.Y = 0.0;
+                            zero2.X = (this.Api.World.Rand.NextDouble() - 0.5) * 0.009999999776482582;
+                            zero2.Z = (this.Api.World.Rand.NextDouble() - 0.5) * 0.009999999776482582;
+                        }
+                    }
+                    else
+                    {
+                        zero.X = (zero.Z = 0.5f);
+                        zero.Y = 1f;
+                        zero2.Y = 0.05000000074505806;
+                        zero2.X = (this.Api.World.Rand.NextDouble() - 0.5) * 0.009999999776482582;
+                        zero2.Z = (this.Api.World.Rand.NextDouble() - 0.5) * 0.009999999776482582;
+                    }
+                }
+                this.Api.World.SpawnItemEntity(itemStack, this.Pos.ToVec3d().Add(zero), zero2);
+            }
+            if (filthy)
+            {
+                this.MarkDirty(false, null);
+            }
+            return filthy;
         }
 
         /// <summary>
@@ -1227,7 +1489,437 @@ namespace VintageDrawers
             return itemSlot.Itemstack;
         }
 
-        public TextureAtlasPosition? this[string textureCode] => throw new NotImplementedException();
+        public void NeighborBlockChanged()
+        {
+            if (this.Api != null)
+            {
+                _labelFace1OppositeIsOpaque = false;
+                _labelFace2OppositeIsOpaque = false;
+                string a = _hOrient!;
+                if (!(a == "north"))
+                {
+                    if (!(a == "south"))
+                    {
+                        if (!(a == "east"))
+                        {
+                            if (a == "west")
+                            {
+                                _labelFace1OppositeIsOpaque = this.Api.World.BlockAccessor.GetBlock(this.Pos.EastCopy(1)).SideOpaque[BlockFacing.EAST.Index];
+                                _labelFace2OppositeIsOpaque = this.Api.World.BlockAccessor.GetBlock(this.Pos.WestCopy(1)).SideOpaque[BlockFacing.WEST.Index];
+                            }
+                        }
+                        else
+                        {
+                            _labelFace1OppositeIsOpaque = this.Api.World.BlockAccessor.GetBlock(this.Pos.WestCopy(1)).SideOpaque[BlockFacing.WEST.Index];
+                            _labelFace2OppositeIsOpaque = this.Api.World.BlockAccessor.GetBlock(this.Pos.EastCopy(1)).SideOpaque[BlockFacing.EAST.Index];
+                        }
+                    }
+                    else
+                    {
+                        _labelFace1OppositeIsOpaque = this.Api.World.BlockAccessor.GetBlock(this.Pos.NorthCopy(1)).SideOpaque[BlockFacing.NORTH.Index];
+                        _labelFace2OppositeIsOpaque = this.Api.World.BlockAccessor.GetBlock(this.Pos.SouthCopy(1)).SideOpaque[BlockFacing.SOUTH.Index];
+                    }
+                }
+                else
+                {
+                    _labelFace1OppositeIsOpaque = this.Api.World.BlockAccessor.GetBlock(this.Pos.SouthCopy(1)).SideOpaque[BlockFacing.SOUTH.Index];
+                    _labelFace2OppositeIsOpaque = this.Api.World.BlockAccessor.GetBlock(this.Pos.NorthCopy(1)).SideOpaque[BlockFacing.NORTH.Index];
+                }
+                a = _vOrient!;
+                if (!(a == "center"))
+                {
+                    if (!(a == "up"))
+                    {
+                        if (a == "down")
+                        {
+                            _labelFace1OppositeIsOpaque = this.Api.World.BlockAccessor.GetBlock(this.Pos.DownCopy(1)).SideOpaque[BlockFacing.UP.Index];
+                            _labelFace2OppositeIsOpaque = this.Api.World.BlockAccessor.GetBlock(this.Pos.UpCopy(1)).SideOpaque[BlockFacing.DOWN.Index];
+                        }
+                    }
+                    else
+                    {
+                        _labelFace1OppositeIsOpaque = this.Api.World.BlockAccessor.GetBlock(this.Pos.UpCopy(1)).SideOpaque[BlockFacing.DOWN.Index];
+                        _labelFace2OppositeIsOpaque = this.Api.World.BlockAccessor.GetBlock(this.Pos.DownCopy(1)).SideOpaque[BlockFacing.UP.Index];
+                    }
+                }
+                if (_labelRenderer1 != null)
+                {
+                    _labelRenderer1.ShouldDraw = !_labelFace1OppositeIsOpaque.Value;
+                }
+                if ( false && _labelRenderer2 != null)
+                {
+                    _labelRenderer2.ShouldDraw = !_labelFace2OppositeIsOpaque.Value;
+                }
+            }
+        }
+
+        public TextureAtlasPosition? this[string textureCode]
+        {
+            get
+            {
+                if (_tesselatingSpecial.GetValueOrDefault(false))
+                {
+                    if (textureCode == "material")
+                    {
+                        return _tmpTextureSource?[_curMat!];
+                    }
+                    if (textureCode == "material-deco")
+                    {
+                        return _tmpTextureSource?["deco-" + _curMat];
+                    }
+                    if (textureCode == "lining")
+                    {
+                        if (_curLining == "plain")
+                        {
+                            return _tmpTextureSource?[_curMat!];
+                        }
+                        return _tmpTextureSource?[_curLining!];
+                    }
+                    else
+                    {
+                        if (textureCode == "glass")
+                        {
+                            return _glassTextureSource?["material"];
+                        }
+                        return _tmpTextureSource?[textureCode];
+                    }
+                }
+                else
+                {
+                    ItemStack? storedItemStack = GetStoredItemStack();
+                    if (storedItemStack != null && storedItemStack.Block != null && textureCode == "painting")
+                    {
+                        return _capi.Tesselator.GetTextureSource(storedItemStack.Block, 0, false)[textureCode];
+                    }
+                    AssetLocation? assetLocation = null;
+                    IAsset? asset = null;
+                    CompositeTexture? compositeTexture;
+                    if (_tesselatingModBlock.GetValueOrDefault(false))
+                    {
+                        string key = textureCode;
+                        string? stacktype = storedItemStack?.Attributes.GetString("type", null);
+                        if (stacktype != null)
+                        {
+                            textureCode = stacktype + "-" + textureCode;
+                        }
+                        if (storedItemStack != null && (storedItemStack.Block?.Textures.TryGetValue(textureCode, out compositeTexture) ?? false))
+                        {
+                            assetLocation = compositeTexture.Baked.BakedName;
+                            TextureAtlasPosition textureAtlasPosition = _capi.BlockTextureAtlas[assetLocation];
+                            if (textureAtlasPosition != null)
+                            {
+                                return textureAtlasPosition;
+                            }
+                        }
+                        else if (storedItemStack?.Block?.Textures.TryGetValue(key, out compositeTexture) ?? false)
+                        {
+                            assetLocation = compositeTexture.Baked.BakedName;
+                            TextureAtlasPosition textureAtlasPosition = _capi.BlockTextureAtlas[assetLocation];
+                            if (textureAtlasPosition != null)
+                            {
+                                return textureAtlasPosition;
+                            }
+                        }
+                    }
+                    if (storedItemStack != null && storedItemStack.Class == EnumItemClass.Item && storedItemStack.Item.Textures.TryGetValue(textureCode, out compositeTexture))
+                    {
+                        assetLocation = compositeTexture.Baked.BakedName;
+                        if (assetLocation.GetName().Equals("clearquartz"))
+                        {
+                            assetLocation = new AssetLocation("game:item/resource/ungraded/quartz");
+                        }
+                        TextureAtlasPosition textureAtlasPosition = _capi.BlockTextureAtlas[assetLocation];
+                        if (textureAtlasPosition != null)
+                        {
+                            return textureAtlasPosition;
+                        }
+                        asset = _capi.Assets.TryGet(assetLocation.Clone().WithPathPrefixOnce("textures/").WithPathAppendixOnce(".png"), true);
+                        if (asset != null)
+                        {
+                            AssetLocation path = new AssetLocation();
+                            if (asset.Location != null && asset.Location.FirstPathPart(0) == "textures")
+                            {
+                                path = new AssetLocation(asset.Location.ToString().Replace("textures/", ""));
+                            }
+                            int num;
+                            _capi.BlockTextureAtlas.GetOrInsertTexture(path, out num, out textureAtlasPosition, null, 0f);
+                            return textureAtlasPosition;
+                        }
+                    }
+                    if (assetLocation == null && _shapeTextures != null)
+                    {
+                        _shapeTextures.TryGetValue(textureCode, out assetLocation);
+                    }
+                    if (assetLocation != null)
+                    {
+                        TextureAtlasPosition textureAtlasPosition = _capi.BlockTextureAtlas[assetLocation];
+                        if (textureAtlasPosition == null)
+                        {
+                            asset = _capi.Assets.TryGet(assetLocation.Clone().WithPathPrefixOnce("textures/").WithPathAppendixOnce(".png"), true);
+                            if (asset != null)
+                            {
+                                AssetLocation path2 = new AssetLocation();
+                                if (asset.Location != null && asset.Location.FirstPathPart(0) == "textures")
+                                {
+                                    path2 = new AssetLocation(asset.Location.ToString().Replace("textures/", ""));
+                                }
+                                int num;
+                                _capi.BlockTextureAtlas.GetOrInsertTexture(path2, out num, out textureAtlasPosition, null, 0f);
+                            }
+                        }
+                        return textureAtlasPosition;
+                    }
+                    if (storedItemStack != null && storedItemStack.Class == EnumItemClass.Item)
+                    {
+                        assetLocation = storedItemStack.Item.FirstTexture.Base;
+                        TextureAtlasPosition textureAtlasPosition = _capi.BlockTextureAtlas[assetLocation];
+                        if (textureAtlasPosition != null)
+                        {
+                            return textureAtlasPosition;
+                        }
+                        if (_tesselatingTextureShape.GetValueOrDefault(false))
+                        {
+                            assetLocation = storedItemStack.Item.FirstTexture.Base;
+                        }
+                        if (assetLocation != null)
+                        {
+                            asset = _capi.Assets.TryGet(assetLocation.Clone().WithPathPrefixOnce("textures/").WithPathAppendixOnce(".png"), true);
+                        }
+                        if (asset != null)
+                        {
+                            AssetLocation path3 = new AssetLocation();
+                            if (asset.Location != null && asset.Location.FirstPathPart(0) == "textures")
+                            {
+                                path3 = new AssetLocation(asset.Location.ToString().Replace("textures/", ""));
+                            }
+                            int num;
+                            _capi.BlockTextureAtlas.GetOrInsertTexture(path3, out num, out textureAtlasPosition, null, 0f);
+                            return textureAtlasPosition;
+                        }
+                    }
+                    return _storedItemTextureSource?[textureCode];
+                }
+            }
+        }
+
+        public void TranslateMesh(MeshData mesh)
+        {
+            if (mesh == null)
+            {
+                return;
+            }
+            ItemStack? storedItemStack = GetStoredItemStack();
+            if (storedItemStack == null)
+            {
+                return;
+            }
+            ModelTransform guiTransform;
+            if (storedItemStack.Class == EnumItemClass.Item)
+            {
+                guiTransform = storedItemStack.Item.GuiTransform;
+            }
+            else
+            {
+                guiTransform = storedItemStack.Block.GuiTransform;
+            }
+            float[] array = Mat4f.Create();
+            Mat4f.Identity(array);
+            Vec3f vec3f = new Vec3f();
+            vec3f.X = 0.25f * guiTransform.ScaleXYZ.X;
+            vec3f.Y = 0.25f * guiTransform.ScaleXYZ.Y;
+            vec3f.Z = 0.25f * guiTransform.ScaleXYZ.Z;
+            float num = guiTransform.Rotation.X * 0.017453292f;
+            if (storedItemStack.Class == EnumItemClass.Item)
+            {
+                num += 3.1415927f;
+            }
+            Mat4f.Scale(array, array, new float[]
+            {
+                1f,
+                1f,
+                -1f
+            });
+            Mat4f.RotateX(array, array, num);
+            Mat4f.RotateY(array, array, 0.017453292f * guiTransform.Rotation.Y);
+            Mat4f.RotateZ(array, array, 0.017453292f * guiTransform.Rotation.Z);
+            Mat4f.Scale(array, array, new float[]
+            {
+                vec3f.X,
+                vec3f.Y,
+                vec3f.Z
+            });
+            Mat4f.Translate(array, array, -guiTransform.Origin.X, -guiTransform.Origin.Y, -guiTransform.Origin.Z);
+            mesh.MatrixTransform(array);
+            mesh.Scale(new Vec3f(0.5f, 0.5f, 0.5f), 1f, 1f, 0.005f);
+            mesh.Translate(0.5f, 0.565f, 0.51f);
+            mesh.Rotate(new Vec3f(0.5f, 0.5f, 0.5f), _labelRot1!.X, _labelRot1!.Y + 3.1415927f, -_labelRot1!.Z);
+        }
+
+        private void UpdateMesh()
+        {
+            ItemStack? storedItemStack = GetStoredItemStack();
+            int num = -1;
+            if (storedItemStack != null)
+            {
+                num = storedItemStack.Id;
+            }
+            if (num == _previousItemStackID)
+            {
+                return; // bounce if we don't need to rebuild the mesh
+            }
+            _previousItemStackID = num;
+            MeshData? meshData = GenMeshData(_capi.Tesselator);
+            MeshData? meshData2 = null;
+            if (meshData != null)
+            {
+                meshData2 = meshData.Clone();
+            }
+            if (meshData2 != null)
+            {
+                TranslateMesh(meshData2);
+                this.UpdateXYZFaces(meshData2);
+                _mainMeshData1 = meshData2;
+                // Drawers are not 2-sided
+                //if (this.twoSided)
+                //{
+                //    MeshData meshData3 = meshData2.Clone();
+                //    string a = this.verticalOrientation;
+                //    if (!(a == "center"))
+                //    {
+                //        if (a == "up" || a == "down")
+                //        {
+                //            string a2 = this.horizontalOrientation;
+                //            if (!(a2 == "east") && !(a2 == "west"))
+                //            {
+                //                if (a2 == "north" || a2 == "south")
+                //                {
+                //                    meshData3.Rotate(new Vec3f(0.5f, 0.5f, 0.5f), 3.1415927f, 0f, 0f);
+                //                }
+                //            }
+                //            else
+                //            {
+                //                meshData3.Rotate(new Vec3f(0.5f, 0.5f, 0.5f), 0f, 0f, 3.1415927f);
+                //            }
+                //        }
+                //    }
+                //    else
+                //    {
+                //        meshData3.Rotate(new Vec3f(0.5f, 0.5f, 0.5f), 3.1415927f, 0f, 3.1415927f);
+                //    }
+                //    this.mainMeshData2 = meshData3.Clone();
+                //}
+            }
+            this.MarkDirty(true, null);
+        }
+
+        private void UpdateXYZFaces(MeshData m1)
+        {
+            byte b = 0;
+            string a = _vOrient!;
+            if (!(a == "up"))
+            {
+                if (!(a == "down"))
+                {
+                    if (a == "center")
+                    {
+                        string a2 = _hOrient!;
+                        if (!(a2 == "north"))
+                        {
+                            if (!(a2 == "south"))
+                            {
+                                if (!(a2 == "east"))
+                                {
+                                    if (a2 == "west")
+                                    {
+                                        b = (byte)(BlockFacing.EAST.Index + 1);
+                                    }
+                                }
+                                else
+                                {
+                                    b = (byte)(BlockFacing.WEST.Index + 1);
+                                }
+                            }
+                            else
+                            {
+                                b = (byte)(BlockFacing.NORTH.Index + 1);
+                            }
+                        }
+                        else
+                        {
+                            b = (byte)(BlockFacing.SOUTH.Index + 1);
+                        }
+                    }
+                }
+                else
+                {
+                    b = (byte)(BlockFacing.DOWN.Index + 1);
+                }
+            }
+            else
+            {
+                b = (byte)(BlockFacing.UP.Index + 1);
+            }
+            if (b > 0)
+            {
+                for (int i = 0; i < m1.XyzFaces.Length; i++)
+                {
+                    m1.XyzFaces[i] = b;
+                }
+            }
+        }
+
+        public void UpdateMeshAndLabelRenderer()
+        {
+            if (this.Api == null || this.Api.Side == EnumAppSide.Server)
+            {
+                return;
+            }            
+            
+            if (_inventory[0].Empty && _lockedToStack == null)
+            {
+                _mainMeshData1 = null;
+                _mainMeshData2 = null;
+                _previousItemStackID = -1;
+                if (_labelRenderer1 != null)
+                {
+                    _labelRenderer1.SetNewTextAndRotation(string.Empty, ColorUtil.BlackArgb, _labelRot1!);
+                    _labelRenderer1._drawLockIcon = false;
+                }
+                //if (this.twoSided && this.labelRenderer2 != null)
+                //{
+                //    this.labelRenderer2.SetNewTextAndRotation(string.Empty, ColorUtil.BlackArgb, this.labelRotation2);
+                //    this.labelRenderer2.DrawLockIcon = false;
+                //}
+                return;
+            }
+            this.UpdateMesh();
+            string text = GetInventoryCount().ToString();
+            if (_labelRenderer1 != null)
+            {
+                _labelRenderer1.SetNewTextAndRotation(_labelEnabled ? text : string.Empty, ColorUtil.ToRgba(255, 0, 0, 0), _labelRot1!);
+                _labelRenderer1._drawLockIcon = _locked;
+            }
+            else
+            {
+                _labelRenderer1 = new DrawerLabelRenderer(this, this.Pos, _capi);
+                _labelRenderer1.SetNewTextAndRotation(_labelEnabled ? text : string.Empty, ColorUtil.ToRgba(255, 0, 0, 0), _labelRot1!);
+                _labelRenderer1._drawLockIcon = _locked;
+                this.NeighborBlockChanged();
+            }
+            //if (this.twoSided)
+            //{
+            //    if (this.labelRenderer2 != null)
+            //    {
+            //        this.labelRenderer2.SetNewTextAndRotation(this.text, ColorUtil.ToRgba(255, 0, 0, 0), this.labelRotation2);
+            //        this.labelRenderer2.DrawLockIcon = !this.lockedItemInventory.Empty;
+            //        return;
+            //    }
+            //    this.labelRenderer2 = new BetterCrateLabelRender(this, this.Pos, this.cApi);
+            //    this.labelRenderer2.SetNewTextAndRotation(this.text, ColorUtil.ToRgba(255, 0, 0, 0), this.labelRotation2);
+            //    this.labelRenderer2.DrawLockIcon = !this.lockedItemInventory.Empty;
+            //    this.NeighborBlockChanged();
+            //}
+        }
 
         public Size2i? AtlasSize => _capi.BlockTextureAtlas.Size;
 

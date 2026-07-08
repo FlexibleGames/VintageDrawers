@@ -130,5 +130,61 @@ namespace VintageDrawers
             }
             return new ItemStack(world.BlockAccessor.GetBlock(pos), 1);
         }
+        public override float OnGettingBroken(IPlayer player, BlockSelection blockSel, ItemSlot itemslot, float remainingResistance, float dt, int counter)
+        {
+            if (!itemslot.Empty && itemslot.Itemstack.Class == EnumItemClass.Item)
+            {
+                EnumTool? tool = itemslot.Itemstack.Item.Tool;
+                EnumTool enumTool = EnumTool.Axe;
+                if (tool.GetValueOrDefault() == enumTool & tool != null)
+                {
+                    return base.OnGettingBroken(player, blockSel, itemslot, remainingResistance, dt, counter);
+                }
+            }
+            BlockEntity blockEntity = player.Entity.World.BlockAccessor.GetBlockEntity(blockSel.Position);
+            if (blockEntity != null && blockEntity is DrawerBE _drawer)
+            {                
+                if (counter % 5 == 0)
+                {
+                    _drawer.OnPlayerLeftClick(player);
+                }
+            }
+            return base.OnGettingBroken(player, blockSel, itemslot, remainingResistance, dt, counter);
+        }
+        public override void OnBlockBroken(IWorldAccessor world, BlockPos pos, IPlayer byPlayer, float dropQuantityMultiplier = 1f)
+        {
+            if (byPlayer.WorldData.CurrentGameMode != EnumGameMode.Creative)
+            {
+                base.OnBlockBroken(world, pos, byPlayer, dropQuantityMultiplier);
+                return;
+            }
+            EnumTool? activeTool = byPlayer.InventoryManager.ActiveTool;
+            EnumTool enumTool = EnumTool.Axe;
+            if (activeTool.GetValueOrDefault() == enumTool & activeTool != null)
+            {
+                base.OnBlockBroken(world, pos, byPlayer, dropQuantityMultiplier);
+                return;
+            }
+            if (world.Side == EnumAppSide.Client)
+            {
+                BlockEntity blockEntity = byPlayer.Entity.World.BlockAccessor.GetBlockEntity(pos);
+                if (blockEntity != null && blockEntity is DrawerBE _drawer)
+                {
+                    _drawer.OnPlayerLeftClick(byPlayer);
+                }
+            }
+        }
+        public override void OnNeighbourBlockChange(IWorldAccessor world, BlockPos pos, BlockPos neibpos)
+        {
+            if (world.Side == EnumAppSide.Client)
+            {
+                BlockEntity be = this.api.World.BlockAccessor.GetBlockEntity(pos);
+                if (be != null && be is DrawerBE _drawer)
+                {
+                    _drawer.NeighborBlockChanged();
+                }
+            }
+            base.OnNeighbourBlockChange(world, pos, neibpos);
+        }
     }
 }
