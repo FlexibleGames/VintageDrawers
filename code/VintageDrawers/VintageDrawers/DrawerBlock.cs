@@ -1,13 +1,88 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
+using Vintagestory.GameContent;
 
 namespace VintageDrawers
 {
     public class DrawerBlock : Block
     {
+        public DrawerBlock() { }
+
+        public override string GetPlacedBlockInfo(IWorldAccessor world, BlockPos pos, IPlayer forPlayer)
+        {
+            if (this.api == null) return string.Empty;
+            DrawerBE drawerentity = world.BlockAccessor.GetBlockEntity<DrawerBE>(pos);
+            if (drawerentity == null) return string.Empty;
+            string output = string.Empty;
+            if (!drawerentity.Inventory[0].Empty || drawerentity.LockedToStack != null)
+            {
+                output += $"{Lang.Get("contents")}: {drawerentity.GetInventoryCount()} / {drawerentity.GetStoredMaxStackSize()} {drawerentity.GetStoredItemStack()?.GetName()}" + Environment.NewLine;
+            }
+            ItemStack? drawerstack = drawerentity.GetStoredItemStack();
+            if (drawerstack != null && drawerstack.Item != null && drawerstack.Item.Durability > 0)
+            {
+                output += $"{Lang.Get("durability")}: {drawerstack.Collectible.GetRemainingDurability(drawerstack)} / {drawerstack.Collectible.GetMaxDurability(drawerstack)}";
+            }
+            foreach (BlockBehavior bbeh in this.BlockBehaviors)
+            {
+                output += bbeh.GetPlacedBlockInfo(world, pos, forPlayer);
+            }
+            return output;
+        }
+        public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
+        {
+            if (!world.Claims.TryAccess(byPlayer, blockSel.Position, EnumBlockAccessFlags.Use))
+            {
+                return true;
+            }
+            if (world.Api.ModLoader.GetModSystem<ModSystemBlockReinforcement>(true).IsLockedForInteract(blockSel.Position, byPlayer))
+            {
+                if (world.Side == EnumAppSide.Client)
+                {
+                    ((ICoreClientAPI)world.Api).TriggerIngameError(this, "locked", Lang.Get("ingameerror-locked", Array.Empty<object>()));
+                }
+                return true;
+            }
+            if (this.CheckForUpgradeItem(byPlayer, blockSel.Position))
+            {
+                return true;
+            }
+            BlockEntity blockEntity = world.BlockAccessor.GetBlockEntity(blockSel.Position);
+            if (blockEntity is DrawerBE)
+            {
+                ((DrawerBE)blockEntity).OnPlayerInteract(byPlayer);
+            }
+            return true;
+        }
+
+        public bool CheckForUpgradeItem(IPlayer byPlayer, BlockPos pos)
+        {
+            if (!byPlayer.Entity.Controls.Sneak)
+            {
+                return false;
+            }
+            ItemSlot activeslot = byPlayer.InventoryManager.ActiveHotbarSlot;
+            return activeslot != null && !activeslot.Empty && activeslot.Itemstack.Class == EnumItemClass.Item
+                && TryToUpgrade(byPlayer, pos);
+        }
+
+        public bool TryToUpgrade(IPlayer byPlayer, BlockPos pos)
+        {
+            DrawerBE? drawerentity = api.World.BlockAccessor.GetBlockEntity(pos) as DrawerBE;
+            if (drawerentity == null) return false;
+            ItemSlot activeslot = byPlayer.InventoryManager.ActiveHotbarSlot;
+            if (activeslot == null || activeslot.Empty || !activeslot.Itemstack.Item.Code.Path.Contains("drawerupgrade"))
+            {
+                return false;
+            }
+            return drawerentity.UpdateInventory(byPlayer);
+        }
+
         public override bool TryPlaceBlock(IWorldAccessor world, IPlayer byPlayer, ItemStack itemstack, BlockSelection blockSel, ref string failureCode)
         {
             if (!this.CanPlaceBlock(world, byPlayer, blockSel, ref failureCode))
