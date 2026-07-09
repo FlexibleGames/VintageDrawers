@@ -113,7 +113,7 @@ namespace VintageDrawers
             }
 
             // Case 2: Empty hand + double click → mass insert from player's inventory
-            if (activeSlot.Empty && isDoubleClick && world.Side == EnumAppSide.Server)
+            if (activeSlot.Empty && isDoubleClick)// && world.Side == EnumAppSide.Server)
             {
                 bool anythingInserted = controllerBE.TryPutPlayerInventory(byPlayer);
                 //if (anythingInserted)
