@@ -15,7 +15,7 @@
   ],
   "variantgroups": [
     {
-      "code": "horizontal",
+      "code": "side",
       "loadFromProperties": "abstract/horizontalorientation"
     }
   ],
@@ -38,30 +38,34 @@
       "base": "vintagedrawers:block/drawercontroller",
       "rotateY": 0
     },
-    "*-west": {
+    "*-east": {
       "base": "vintagedrawers:block/drawercontroller",
-      "rotateY": 90
+      "rotateY": 270
     },
     "*-south": {
       "base": "vintagedrawers:block/drawercontroller",
       "rotateY": 180
     },
-    "*-east": {
+    "*-west": {
       "base": "vintagedrawers:block/drawercontroller",
-      "rotateY": 270
+      "rotateY": 90
     }
   },
-  "blockmaterial": "Wood",
-  "drawtype": "cube",
+  "textures": {
+    "stainlesssteel": { "base": "game:block/metal/plate/stainlesssteel" },
+    "lead": { "base": "game:block/metal/plate/lead" }
+  },
+  "blockmaterial": "Metal",
+  "drawtype": "json",
   "resistance": 6,
   "sounds": {
-    "hit": "game:block/stone",
-    "break": "game:block/stone",
-    "place": "game:block/stone",
-    "walk": "game:walk/stone"
+    "hit": "game:block/metaldoor-place",
+    "break": "game:block/metaldoor-place",
+    "place": "game:block/metaldoor-place",
+    "walk": "game:walk/stone*"
   },
   "maxStackSize": 4,
-  "materialDensity": 600,
+  "materialDensity": 700,
   "heldTpIdleAnimation": "holdbothhandslarge",
   "heldRightReadyAnimation": "heldblockready",
   "heldTpUseAnimation": "twohandplaceblock",
@@ -79,10 +83,10 @@
     "scale": 0.4
   },
   "sidesolid": {
-    "all": true    
+    "all": true
   },
   "sideopaque": {
-    "all": true
+    "all": false
   },
   "guiTransform": {
     "rotation": {
