@@ -145,7 +145,7 @@ namespace VintageDrawers
             render.GlDisableCullFace();
             render.GlToggleBlend(true, EnumBlendMode.Standard);
             IStandardShaderProgram standardShaderProgram = render.PreparedStandardShader(_pos.X, _pos.Y, _pos.Z, null);
-            float[] values = this.ModelMat.Identity().Translate((double)_pos.X - cameraPos.X, (double)_pos.Y - cameraPos.Y, (double)_pos.Z - cameraPos.Z).Translate(0.5f, 0.5f, 0.5f).Rotate(_rotation).Translate(-0.5, -0.5, -0.5).Translate(0.5f, 0.21f, -0.003f).Scale(0.45f * DrawerLabelRenderer.QuadWidth, 0.4f * DrawerLabelRenderer.QuadHeight, 0.45f * DrawerLabelRenderer.QuadWidth).Values;
+            float[] values = this.ModelMat.Identity().Translate((double)_pos.X - cameraPos.X, (double)_pos.Y - cameraPos.Y, (double)_pos.Z - cameraPos.Z).Translate(0.5f, 0.5f, 0.5f).Rotate(_rotation).Translate(-0.5, -0.5, -0.5).Translate(0.5f, 0.21f, -0.003f+0.0625f).Scale(0.45f * DrawerLabelRenderer.QuadWidth, 0.4f * DrawerLabelRenderer.QuadHeight, 0.45f * DrawerLabelRenderer.QuadWidth).Values;
             standardShaderProgram.ModelMatrix = values;
             standardShaderProgram.ViewMatrix = render.CameraMatrixOriginf;
             standardShaderProgram.ProjectionMatrix = render.CurrentProjectionMatrix;

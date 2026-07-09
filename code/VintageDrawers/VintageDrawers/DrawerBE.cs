@@ -362,7 +362,7 @@ namespace VintageDrawers
             {
                 Api.World.BlockAccessor.GetChunkAtBlockPos(Pos).MarkModified();
             }
-            MarkDirty(false);
+            MarkDirty(true);
         }
 
         public override void OnBlockBroken(IPlayer? byPlayer = null)
@@ -1814,7 +1814,7 @@ namespace VintageDrawers
             Mat4f.Translate(array, array, -guiTransform.Origin.X, -guiTransform.Origin.Y, -guiTransform.Origin.Z);
             mesh.MatrixTransform(array);
             mesh.Scale(new Vec3f(0.5f, 0.5f, 0.5f), 1f, 1f, 0.005f);
-            mesh.Translate(0.5f, 0.565f, 0.51f);
+            mesh.Translate(0.5f, 0.565f, 0.51f - 0.0625f);
             mesh.Rotate(new Vec3f(0.5f, 0.5f, 0.5f), _labelRot1!.X, _labelRot1!.Y + 3.1415927f, -_labelRot1!.Z);
         }
 
@@ -1960,6 +1960,18 @@ namespace VintageDrawers
         public override InventoryBase Inventory => _inventory;
 
         public override string InventoryClassName => "onedrawer";
+
+        public override bool OnTesselation(ITerrainMeshPool mesher, ITesselatorAPI tessThreadTesselator)
+        {
+            if (_shouldDrawMesh)
+            {
+                if (_mainMeshData1 != null && !_labelFace1OppositeIsOpaque.GetValueOrDefault(false))
+                {
+                    mesher.AddMeshData(_mainMeshData1, 1);
+                }
+            }
+            return false;
+        }
 
         public override void ToTreeAttributes(ITreeAttribute tree)
         {
