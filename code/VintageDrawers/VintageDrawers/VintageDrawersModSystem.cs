@@ -67,6 +67,8 @@ namespace VintageDrawers
             api.RegisterBlockClass("DrawerBlock", typeof(DrawerBlock));
             api.RegisterBlockEntityClass("DrawerBE", typeof(DrawerBE));
             api.RegisterItemClass("DrawerUpgrade", typeof(DrawerUpgrade));
+            api.RegisterBlockClass("DrawerControllerBlock", typeof(DrawerControllerBlock));
+            api.RegisterBlockEntityClass("DrawerControllerBE", typeof(DrawerControllerBE));
         }
     }
 }

@@ -1322,7 +1322,7 @@ namespace VintageDrawers
             }
         }
 
-        private bool TryPut(ItemSlot fromSlot, bool putBulk)
+        public virtual bool TryPut(ItemSlot fromSlot, bool putBulk)
         {
             bool result = false;
             int numToMove = 1;
@@ -1346,7 +1346,7 @@ namespace VintageDrawers
             return result;
         }
 
-        private bool TryPutAll(IPlayer byPlayer)
+        public virtual bool TryPutAll(IPlayer byPlayer)
         {
             if (_inventory.Empty && _lockedToStack == null)
             {
@@ -1972,6 +1972,44 @@ namespace VintageDrawers
             }
             return false;
         }
+        #region DrawerControllerHelpers
+        /// <summary>
+        /// Checks whether a given stack is in this drawer
+        /// </summary>
+        /// <param name="stack"></param>
+        /// <returns></returns>
+        public bool HasItemType(ItemStack stack)
+        {
+            if (stack == null || _inventory[0].Empty)
+            {
+                return false;
+            }
+
+            return _inventory[0].Itemstack!.Collectible.Code.Equals(stack.Collectible.Code);
+        }
+        /// <summary>
+        /// Check if this drawer can accept more of a given item
+        /// </summary>
+        /// <param name="stack">Item to check</param>
+        /// <returns>True if room exists.</returns>
+        public bool CanAccept(ItemStack stack)
+        {
+            if (stack == null)
+            {
+                return false;
+            }
+
+            if (_inventory[0].Empty)
+            {
+                return true;
+            }
+
+            bool sameItem = _inventory[0].Itemstack!.Collectible.Code.Equals(stack.Collectible.Code);
+            bool hasSpace = _inventory[0].StackSize < _inventory[0].MaxSlotStackSize;
+
+            return sameItem && hasSpace;
+        }
+        #endregion
 
         public override void ToTreeAttributes(ITreeAttribute tree)
         {

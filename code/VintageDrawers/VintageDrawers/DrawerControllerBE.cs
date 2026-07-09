@@ -10,6 +10,9 @@ namespace VintageDrawers
         private List<BlockPos> connectedDrawers = new List<BlockPos>();
         private long lastDiscoveryMs = 0;
         private const int DiscoveryCooldownMs = 2000;
+        public long _lastInteractTime = 0L;
+        public int ConnectedDrawerCount => connectedDrawers.Count;
+        public long LastDiscoveryTime => lastDiscoveryMs;
 
         public int MaxRadius { get; set; } = 16;
 
@@ -89,7 +92,7 @@ namespace VintageDrawers
 
                         if (isDrawer)
                         {
-                            DrawerBE drawerBE = Api.World.BlockAccessor.GetBlockEntity(neighborPos) as DrawerBE;
+                            DrawerBE? drawerBE = Api.World.BlockAccessor.GetBlockEntity(neighborPos) as DrawerBE;
                             if (drawerBE != null)
                             {
                                 connectedDrawers.Add(neighborPos);
@@ -115,7 +118,7 @@ namespace VintageDrawers
         /// <summary>
         /// Smart insertion. Prefers drawers that already contain the item type.
         /// </summary>
-        public bool TryInsertIntoNetwork(ItemStack stack)
+        public bool TryInsertStack(ItemSlot stack)
         {
             if (stack == null || stack.StackSize <= 0)
             {
@@ -130,9 +133,9 @@ namespace VintageDrawers
                 BlockPos pos = connectedDrawers[i];
                 DrawerBE? drawer = Api.World.BlockAccessor.GetBlockEntity(pos) as DrawerBE;
                 if (drawer != null && drawer.Locked && drawer.LockedToStack != null &&
-                    drawer.LockedToStack.Equals(Api.World, stack, GlobalConstants.IgnoredStackAttributes))
+                    drawer.LockedToStack.Equals(Api.World, stack.Itemstack, GlobalConstants.IgnoredStackAttributes))
                 {
-                    if (drawer.TryPutFromController(stack))
+                    if (drawer.TryPut(stack, true))
                     {
                         return true;
                     }
@@ -144,23 +147,23 @@ namespace VintageDrawers
             {
                 BlockPos pos = connectedDrawers[i];
                 DrawerBE? drawer = Api.World.BlockAccessor.GetBlockEntity(pos) as DrawerBE;
-                if (drawer != null && drawer.HasItemType(stack) && drawer.CanAccept(stack))
+                if (drawer != null && drawer.HasItemType(stack.Itemstack!) && drawer.CanAccept(stack.Itemstack!))
                 {
-                    if (drawer.TryPutFromController(stack))
+                    if (drawer.TryPut(stack, true))
                     {
                         return true;
                     }
                 }
             }
 
-            // Priority 3: Any drawer with space
+            // Priority 3: Any empty drawer with space
             for (int i = 0; i < connectedDrawers.Count; i++)
             {
                 BlockPos pos = connectedDrawers[i];
                 DrawerBE? drawer = Api.World.BlockAccessor.GetBlockEntity(pos) as DrawerBE;
-                if (drawer != null && drawer.CanAccept(stack))
+                if (drawer != null && drawer.CanAccept(stack.Itemstack!))
                 {
-                    if (drawer.TryPutFromController(stack))
+                    if (drawer.TryPut(stack, true))
                     {
                         return true;
                     }
@@ -168,6 +171,39 @@ namespace VintageDrawers
             }
 
             return false;
+        }
+
+        public bool TryPutPlayerInventory(IPlayer player)
+        {
+            bool success = false;
+
+            // Hotbar
+            IInventory hotbar = player.InventoryManager.GetHotbarInventory();
+            for (int i = 0; i < hotbar.Count; i++)
+            {
+                if (!hotbar[i].Empty && TryInsertStack(hotbar[i]))
+                {
+                    hotbar[i].MarkDirty();
+                    success = true;
+                }
+            }
+
+            // Main inventory (backpack)
+            string invName = player.InventoryManager.GetInventoryName("backpack");
+            IInventory mainInv = player.InventoryManager.GetInventory(invName);
+            if (mainInv != null)
+            {
+                for (int i = 0; i < mainInv.Count; i++)
+                {
+                    if (!mainInv[i].Empty && TryInsertStack(mainInv[i]))
+                    {
+                        mainInv[i].MarkDirty();
+                        success = true;
+                    }
+                }
+            }
+
+            return success;
         }
     }
 }

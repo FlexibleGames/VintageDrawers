@@ -83,7 +83,11 @@
 		"canChisel": false,
 		"quantitySlots": 32,
 		"handbook": {
-			"groupBy": [ "onedrawer-*" ]
+			"groupBy": [ "onedrawer-*" ],
+			"excludeByType": {
+				"*-north": false,
+				"*": true
+			}
 		}
 	},
 	"texturesByType": {

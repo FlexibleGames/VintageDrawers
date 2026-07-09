@@ -1,0 +1,94 @@
+{
+  "code": "drawercontroller",
+  "class": "DrawerControllerBlock",
+  "entityclass": "DrawerControllerBE",
+  "behaviors": [
+    {
+      "name": "HorizontalOrientable",
+      "properties": {
+        "drop": {
+          "type": "block",
+          "code": "drawercontroller-north"
+        }
+      }
+    }
+  ],
+  "variantgroups": [
+    {
+      "code": "horizontal",
+      "loadFromProperties": "abstract/horizontalorientation"
+    }
+  ],
+  "attributes": {
+    "canChisel": false,
+    "handbook": {
+      "groupBy": [ "drawercontroller-*" ],
+      "excludeByType": {
+        "*-north": false,
+        "*": true
+      }
+    }
+  },
+  "creativeinventory": {
+    "general": [ "*" ],
+    "construction": [ "*" ]
+  },
+  "shapebytype": {
+    "*-north": {
+      "base": "vintagedrawers:block/drawercontroller",
+      "rotateY": 0
+    },
+    "*-west": {
+      "base": "vintagedrawers:block/drawercontroller",
+      "rotateY": 90
+    },
+    "*-south": {
+      "base": "vintagedrawers:block/drawercontroller",
+      "rotateY": 180
+    },
+    "*-east": {
+      "base": "vintagedrawers:block/drawercontroller",
+      "rotateY": 270
+    }
+  },
+  "blockmaterial": "Wood",
+  "drawtype": "cube",
+  "resistance": 6,
+  "sounds": {
+    "hit": "game:block/stone",
+    "break": "game:block/stone",
+    "place": "game:block/stone",
+    "walk": "game:walk/stone"
+  },
+  "maxStackSize": 4,
+  "materialDensity": 600,
+  "heldTpIdleAnimation": "holdbothhandslarge",
+  "heldRightReadyAnimation": "heldblockready",
+  "heldTpUseAnimation": "twohandplaceblock",
+  "tpHandTransform": {
+    "translation": {
+      "x": -1.23,
+      "y": -0.91,
+      "z": -0.8
+    },
+    "rotation": {
+      "x": -2,
+      "y": 25,
+      "z": -78
+    },
+    "scale": 0.4
+  },
+  "sidesolid": {
+    "all": true    
+  },
+  "sideopaque": {
+    "all": true
+  },
+  "guiTransform": {
+    "rotation": {
+      "x": -22.6,
+      "y": 140,
+      "z": 0
+    }
+  }
+}
